@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Home - Page Replacement Simulator</title>
+    <style>
+        /* Warna Primer */
+        :root {
+            --primary: #4a90e2; /* Biru Cerah */
+            --secondary: #50e3c2; /* Hijau Teal */
+            --background: #f0f4f8;
+            --card-bg: #ffffff;
+            --text-color: #333;
+            --fault-bg: #ffeded;
+            --fault-text: #d0021b;
+            --hit-bg: #e6ffed;
+            --hit-text: #008000;
+            --section-bg-home: #e9f0f7; 
+            --section-bg-materi: #ffffff; 
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: var(--text-color);
+            margin: 0;
+            padding: 0;
+            scroll-behavior: smooth; /* MENGHALUSKAN SCROLL */
+        }
+
+        #app {
+            width: 100%;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 30px;
+        }
+
+        h1, h2 {
+            color: var(--primary);
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        /* --- Navigasi & Layout (Fixed) --- */
+        header {
+            background-color: var(--primary);
+            padding: 0;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            position: fixed; 
+            top: 0;
+            width: 100%;
+            z-index: 1000; 
+        }
+
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 20px;
+        }
+
+        .app-title {
+            color: white;
+            font-size: 1.5em;
+            font-weight: bold;
+        }
+
+        nav {
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .nav-btn {
+            background: none;
+            border: none;
+            color: #ffffffd0;
+            padding: 10px 15px;
+            margin-right: 10px;
+            cursor: pointer;
+            font-size: 16px;
+            border-radius: 5px;
+            transition: background-color 0.3s, color 0.3s;
+            position: relative;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        /* Penanda Aktif */
+        .nav-btn.active {
+            color: white;
+            font-weight: bold;
+        }
+
+        .nav-btn.active::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60%;
+            height: 3px;
+            background-color: var(--secondary);
+            border-radius: 2px;
+        }
+
+        .nav-btn:hover:not(.active) {
+            background-color: #387ac7;
+            color: white;
+        }
+
+        /* --- STYLING FULL SCREEN SECTION --- */
+        .full-screen-section {
+            min-height: 100vh; 
+            display: flex;
+            align-items: center; 
+            justify-content: center; 
+            padding-top: 60px; 
+            box-sizing: border-box;
+            background-color: var(--background);
+        }
+
+        #home-section {
+            background-color: var(--section-bg-home);
+        }
+
+        #material-section {
+            background-color: var(--section-bg-materi);
+        }
+
+        /* --- Materi Styling --- */
+        #material-section .container {
+            background: var(--card-bg);
+            border-radius: 12px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+        }
+        
+        .material-content h3 {
+            color: var(--secondary);
+            border-left: 4px solid var(--primary);
+            padding-left: 10px;
+            margin-top: 25px;
+        }
+
+        .material-note {
+            font-style: italic;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        hr {
+            border: 0;
+            height: 1px;
+            background-image: linear-gradient(to right, rgba(0, 0, 0, 0), rgba(74, 144, 226, 0.75), rgba(0, 0, 0, 0));
+            margin: 30px 0;
+        }
+        
+        .text-link {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: bold;
+        }
+        .text-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <header>
+            <div class="header-content">
+                <div class="app-title">Page Replacement Simulator</div>
+                <nav id="main-nav">
+                    <a href="#home-section" class="nav-btn" data-page="home" onclick="scrollToSection('home-section', event)">Home</a>
+                    <a href="#material-section" class="nav-btn" data-page="materi" onclick="scrollToSection('material-section', event)">Materi</a>
+                    <a href="simulasi.html" class="nav-btn">Simulasi</a>
+                    <a href="anggota.html" class="nav-btn">Anggota Kelompok</a>
+                </nav>
+            </div>
+        </header>
+        
+        <section id="home-section" class="full-screen-section">
+            <div class="container home-card">
+                <h1>👋 Selamat Datang di Page Replacement Simulator</h1>
+                <p style="text-align: center; font-size: 1.1em; max-width: 800px; margin: 0 auto 30px;">
+                    Aplikasi ini dirancang untuk membantu Anda memvisualisasikan dan membandingkan kinerja tiga algoritma Page Replacement utama: FIFO, LRU, dan Optimal**.
+                </p>
+                <div style="text-align: center;">
+                    <a href="simulasi.html" class="nav-btn" style="background-color: var(--secondary); color: var(--text-color); margin: 10px;">Mulai Simulasi Sekarang</a>
+                    <a href="#material-section" class="nav-btn" style="background-color: #cccccc; color: var(--text-color); margin: 10px;" onclick="scrollToSection('material-section', event)">Lihat Materi</a>
+                </div>
+            </div>
+        </section>
+
+        <section id="material-section" class="full-screen-section">
+            <div class="container material-content" style="max-height: 90vh; overflow-y: auto;">
+                <h2>📚 Materi Dasar Page Replacement</h2>
+                <p>Page Replacement adalah mekanisme dalam sistem operasi untuk mengganti halaman (page) di memori ketika ruang memori sudah penuh dan proses membutuhkan halaman baru. Teknik ini penting pada sistem yang menggunakan virtual memory, karena memori fisik terbatas dan sistem harus memilih halaman mana yang tetap disimpan dan mana yang harus diganti.
+</p>
+
+                <hr>
+                
+                <h3>1. FIFO (First-In, First-Out)</h3>
+                <p>Mengganti halaman yang paling lama berada di memori. Logikanya seperti antrian (Queue).</p>
+                
+                <p class="material-note">Kelemahan: Tidak mempertimbangkan frekuensi penggunaan.</p>
+
+                <h3>2. LRU (Least Recently Used)</h3>
+                <p>Mengganti halaman yang paling lama tidak digunakan.</p>
+                
+                <p class="material-note">Kelebihan: Kinerja yang umumnya baik. Kelemahan: Membutuhkan overhead yang kompleks untuk melacak waktu akses.</p>
+
+                <h3>3. Optimal (Belady's Algorithm)</h3>
+                <p>Mengganti halaman yang tidak akan digunakan untuk jangka waktu terlama di masa depan.</p>
+                
+                <p class="material-note">Kelebihan: Memberikan batas bawah Page Fault (patokan). Kelemahan: Tidak dapat diimplementasikan secara nyata.</p>
+                
+                <p style="text-align: center; margin-top: 30px;">Lanjut ke <a href="simulasi.html" class="text-link">Halaman Simulasi</a>.</p>
+            </div>
+        </section>
+    </div>
+    <script>
+        // --- FUNGSI SCROLL KUSTOM DAN PENANDA AKTIF ---
+        
+        // Fungsi untuk menggulir ke section tertentu (dipanggil saat klik)
+        function scrollToSection(sectionId, event) {
+            // Mencegah perilaku default anchor link
+            if (event) {
+                event.preventDefault();
+            }
+            const section = document.getElementById(sectionId);
+            if (section) {
+                // Menggunakan scrollIntoView untuk menggulir, dengan perilaku halus (smooth)
+                section.scrollIntoView({ behavior: 'smooth' });
+                
+                // Opsional: Perbarui URL hash tanpa memicu scroll
+                history.pushState(null, null, '#' + sectionId); 
+            }
+        }
+        
+        // Fungsi untuk memperbarui penanda aktif di navbar saat scrolling
+        const updateActiveClass = () => {
+            const homeSection = document.getElementById('home-section');
+            const materialSection = document.getElementById('material-section');
+            const homeBtn = document.querySelector('.nav-btn[data-page="home"]');
+            const materiBtn = document.querySelector('.nav-btn[data-page="materi"]');
+
+            if (!homeSection || !materialSection || !homeBtn || !materiBtn) return; 
+
+            const scrollY = window.scrollY || window.pageYOffset;
+            const homeHeight = homeSection.offsetHeight;
+            const headerHeight = 60; // Tinggi header fixed
+
+            // Hapus semua penanda aktif internal
+            homeBtn.classList.remove('active');
+            materiBtn.classList.remove('active');
+
+            // Cek jika sedang berada di Materi Section (scrollY melewati batas Home)
+            // Kita kurangi tinggi header agar transisi lebih mulus
+            if (scrollY >= homeHeight - headerHeight) {
+                materiBtn.classList.add('active');
+            } else {
+                // Berada di Home Section
+                homeBtn.classList.add('active');
+            }
+        };
+
+        // --- PANGGILAN AWAL ---
+        document.addEventListener('DOMContentLoaded', () => {
+            // Jalankan penanda aktif saat load
+            updateActiveClass();
+            // Tambahkan listener untuk event scroll
+            window.addEventListener('scroll', updateActiveClass);
+            
+            // --- FUNGSI SIMULASI/UTILITAS DARI RESPONS SEBELUMNYA HARUS ADA DI SINI ---
+            
+            // Contoh utilitas (tetap harus disalin lengkap)
+            function parseReferenceString(str) { 
+                return str.replace(/[, ]+/g, ' ')
+                          .trim()
+                          .split(' ')
+                          .filter(n => n)
+                          .map(n => parseInt(n));
+            }
+            
+            // ... (PASTE SEMUA FUNGSI SIMULASI, RENDERING, DAN runAllSimulations DI SINI) ...
+            
+        });
+        
+    </script>
+</body>
+</html>

@@ -1,0 +1,1098 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulasi Algoritma Page Replacement</title>
+    <style>
+        /* --- VARIABEL WARNA (TIDAK BERUBAH) --- */
+        :root {
+            --primary: #4a90e2; /* Biru Cerah */
+            --secondary: #50e3c2; /* Hijau Teal */
+            --background: #f0f4f8;
+            --card-bg: #ffffff;
+            --text-color: #333;
+            --fault-bg: #ffeded;
+            --fault-text: #d0021b;
+            --hit-bg: #e6ffed;
+            --hit-text: #008000;
+        }
+
+        /* --- TATA LETAK DASAR (TIDAK BERUBAH) --- */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--background);
+            color: var(--text-color);
+            margin: 0;
+            padding: 0;
+        }
+
+        #app {
+            width: 100%;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 80px auto 20px auto; 
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        h1, h2 {
+            color: var(--primary);
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        /* --- NAVIGATION (TIDAK BERUBAH) --- */
+        header {
+            background-color: var(--primary);
+            padding: 0;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            position: fixed;
+            top: 0;
+            width: 100%; 
+            z-index: 1000; 
+        }
+
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 20px;
+        }
+
+        .app-title {
+            color: white;
+            font-size: 1.5em;
+            font-weight: bold;
+        }
+
+        nav {
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .nav-btn {
+            background: none;
+            border: none;
+            color: #ffffffd0;
+            padding: 10px 15px;
+            margin-right: 10px;
+            cursor: pointer;
+            font-size: 16px;
+            border-radius: 5px;
+            transition: background-color 0.3s, color 0.3s;
+            position: relative;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .nav-btn.active {
+            color: white;
+            font-weight: bold;
+        }
+
+        .nav-btn.active::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60%;
+            height: 3px;
+            background-color: var(--secondary);
+            border-radius: 2px;
+        }
+
+        .nav-btn:hover:not(.active) {
+            background-color: #387ac7;
+            color: white;
+        }
+        
+        /* ==================================== */
+        /* --- TATA LETAK HORIZONTAL BARU --- */
+        /* ==================================== */
+        .simulation-layout {
+            display: flex;
+            gap: 30px; /* Jarak antara kolom Input dan Hasil */
+            align-items: flex-start; /* Sejajarkan di bagian atas */
+        }
+        
+        .input-section {
+            flex: 0 0 350px; /* Lebar tetap untuk input pada layar besar */
+            padding-right: 20px;
+            border-right: 1px solid #eee;
+            position: sticky; /* Agar input tetap terlihat saat menggulir hasil */
+            top: 100px; /* Jarak dari header fixed */
+        }
+        
+        .results-section {
+            flex-grow: 1; /* Mengambil sisa ruang */
+            min-width: 0; /* Penting untuk flexbox */
+        }
+        
+        /* Responsif: Tumpuk saat layar kecil */
+        @media (max-width: 992px) {
+            .simulation-layout {
+                flex-direction: column;
+            }
+            
+            .input-section {
+                flex: none;
+                width: 100%;
+                padding-right: 0;
+                border-right: none;
+                border-bottom: 1px solid #eee;
+                padding-bottom: 20px;
+                position: static; /* Hilangkan sticky pada layar kecil */
+            }
+        }
+        
+        /* --- INPUT & BUTTON STYLING (TIDAK BERUBAH) --- */
+        .input-group {
+            margin-bottom: 20px;
+            width: 100%; 
+        }
+        
+        .input-group a {
+            font-size: 0.9em;
+            color: #6c757d;
+            display: block;
+            margin-top: 10px;
+            margin-bottom: 10px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: var(--primary);
+        }
+
+        .input-group input, .input-group select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            box-sizing: border-box;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        
+        .input-group input:focus, .input-group select:focus {
+            border-color: var(--secondary);
+            outline: none;
+            box-shadow: 0 0 5px rgba(80, 227, 194, 0.5);
+        }
+
+        button {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: background-color 0.3s ease, transform 0.1s;
+        }
+
+        #actionButtons {
+            display: flex; 
+            gap: 15px; 
+            margin-top: 20px;
+            margin-bottom: 30px;
+            flex-wrap: wrap; 
+        }
+
+        #actionButtons button {
+            flex-grow: 1; 
+            min-width: 150px;
+            width: auto; 
+            margin-top: 0;
+        }
+
+        #runButton {
+            background-color: var(--secondary);
+            color: #333;
+        }
+        
+        #runButton:hover {
+            background-color: #3fe0b5;
+            transform: translateY(-2px);
+        }
+
+        #resetButton {
+            background-color: #e2e6ea; 
+            color: #333;
+            font-weight: normal;
+        }
+
+        #resetButton:hover {
+            background-color: #ced4da;
+            transform: translateY(-2px);
+        }
+        
+        #toggleComparisonButton {
+            background-color: var(--primary);
+            color: white;
+        }
+        
+        #toggleComparisonButton:hover {
+            background-color: #387ac7;
+            transform: translateY(-2px);
+        }
+
+        .container > button {
+            display: none;
+        }
+        #algorithmCheckboxes a {
+            font-size: 0.9em;
+            color: #6c757d;
+            display: block;
+            margin-top: 10px;
+            margin-bottom: 10px;
+        }
+
+        /* CSS BARU UNTUK SEJAJAR VERTIKAL */
+        #algorithmCheckboxes {
+            width: 100%;
+            display: block; 
+            padding: 10px 0;
+            border-top: 1px solid #eee;
+            margin-top: 10px;
+        }
+
+        #algorithmCheckboxes > label:first-child {
+            display: block; 
+            margin-bottom: 10px; 
+            font-weight: bold;
+            color: var(--primary);
+            margin-right: 0; 
+        }
+
+        /* Kunci: Membuat setiap label checkbox mengambil baris penuh */
+        #algorithmCheckboxes label {
+            display: block; 
+            margin-bottom: 5px; 
+            margin-right: 0; 
+        }
+
+        /* --- SIMULATION & OUTPUT STYLING (TIDAK BERUBAH) --- */
+
+        .simulation-card {
+            background: #f7f9fc;
+            border-left: 5px solid var(--primary);
+            padding: 20px;
+            margin-bottom: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .simulation-card h3 {
+            color: var(--primary);
+            border-bottom: 2px solid var(--secondary);
+            padding-bottom: 5px;
+        }
+
+        .summary {
+            font-size: 1.2em;
+            font-weight: bold;
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 4px;
+            text-align: center;
+            border: 1px solid;
+        }
+
+        .summary.fault-summary { 
+            color: var(--fault-text);
+            background-color: var(--fault-bg);
+            border-color: var(--fault-text);
+        }
+
+        .summary.hit-summary { 
+            color: var(--hit-text);
+            background-color: var(--hit-bg);
+            border-color: var(--hit-text);
+        }
+
+        /* --- Table Styling (TIDAK BERUBAH) --- */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        table th, table td {
+            border: 1px solid #e9ecef;
+            padding: 10px;
+            text-align: center;
+        }
+
+        table th {
+            background-color: var(--primary);
+            color: white;
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+
+        .fault {
+            background-color: var(--fault-bg);
+            color: var(--fault-text);
+            font-weight: bold;
+        }
+
+        .hit {
+            background-color: var(--hit-bg);
+            color: var(--hit-text);
+            font-weight: bold;
+        }
+
+        .frame-cell {
+            min-width: 30px;
+        }
+
+        /* --- Comparison Output (TIDAK BERUBAH) --- */
+        #comparisonOutput {
+            margin-top: 30px; 
+            padding: 20px;
+            background: var(--card-bg);
+            border: 2px solid var(--secondary);
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            display: none; 
+        }
+
+        #comparisonOutput h3 {
+            text-align: center;
+            color: var(--primary);
+            margin-top: 0;
+        }
+
+        .optimal-result {
+            text-align: center;
+            font-size: 1.4em;
+            font-weight: bold;
+            color: #008000;
+            margin-top: 15px;
+        }
+
+        .comparison-table th {
+            background-color: var(--secondary);
+            color: var(--text-color);
+        }
+
+        .comparison-container {
+            min-height: 10px; 
+        }
+
+        /* ==================================== */
+        /* --- STYLE BARU UNTUK STEPPER --- */
+        /* ==================================== */
+
+        #stepControls {
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 8px;
+            background-color: #f9f9f9;
+            margin-bottom: 20px;
+        }
+        
+        #stepControls button {
+            padding: 8px 15px;
+            font-size: 14px;
+            margin: 5px;
+            font-weight: normal;
+        }
+        
+        #stepBtn { background-color: #ff9800; color: white; }
+        #playBtn { background-color: var(--primary); color: white; }
+        #resetStepBtn { background-color: #bdbdbd; color: #333; }
+        
+        #algoSelectorContainer label, #stepCurrentAlgoLabel {
+            font-weight: bold;
+            color: var(--primary);
+        }
+
+        #stepAlgoSelect {
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            margin-left: 10px;
+        }
+
+        .step-visualization-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+        .step-visualization-table th, .step-visualization-table td {
+            border: 1px solid #e9ecef;
+            padding: 8px;
+            text-align: center;
+        }
+        .step-visualization-table th {
+            background-color: #555;
+            color: white;
+        }
+        .step-visualization-table tbody tr:nth-child(even) {
+            background-color: #f7f7f7;
+        }
+        .current-step-row {
+            background-color: #fff9c4 !important; /* Highlight baris langkah saat ini */
+            border: 2px solid #ffeb3b;
+        }
+        
+    </style>
+</head>
+<body>
+    <div id="app">
+        <header>
+            <div class="header-content">
+                <div class="app-title">Page Replacement Simulator</div>
+                <nav id="main-nav">
+                    <a href="index.html#home-section" class="nav-btn">Home</a>
+                    <a href="index.html#material-section" class="nav-btn">Materi</a>
+                    <a href="simulasi.html" class="nav-btn active">Simulasi</a>
+                    <a href="anggota.html" class="nav-btn">Anggota Kelompok</a>
+                </nav>
+            </div>
+        </header>
+        
+        <section id="simulation-page" class="page">
+            <div class="container">
+                <h1>⚙️ Jalankan Simulasi Algoritma</h1>
+
+                <div class="simulation-layout">
+                    
+                    <div class="input-section">
+                        <div id="inputControls">
+                            <div class="input-group">
+                                <label for="referenceString">String Referensi:</label>
+                                <input type="text" id="referenceString" value="7,0,1,2,0,3,0,4,2,3,0,3,2,1,2,0,1,7,0,1" placeholder="Contoh: (7, 0, 1, 2, 0, 3) / (7 0 1 2 0 3)">
+                                <a>* (Gunakan koma "," atau spasi " " sebagai pemisah).</a>
+                            </div>
+
+                            <div class="input-group">
+                                <label for="frameSize">Ukuran Bingkai Memori:</label>
+                                <input type="number" id="frameSize" value="3" placeholder="Contoh: 3" min="1">
+                                <a>* Masukkan angka bulat positif.</a>
+                            </div>
+                            
+                            <div id="algorithmCheckboxes">
+                                <label>Pilih Algoritma:</label>
+                                    <div class>
+                                        <label><input type="checkbox" name="algo" value="FIFO" checked id="algo-fifo"> FIFO</label>
+                                        <label><input type="checkbox" name="algo" value="LRU" checked id="algo-lru"> LRU</label>
+                                        <label><input type="checkbox" name="algo" value="Optimal" checked id="algo-optimal"> Optimal</label>
+                                    </div>
+                                <a>* Centang algoritma yang ingin dijalankan.</a>
+                            </div>
+                        </div>
+                        
+                        <div id="actionButtons"> 
+                            <button onclick="runAllSimulations()" id="runButton">Jalankan Simulasi 🚀</button>
+                            <button type="button" onclick="toggleComparison()" id="toggleComparisonButton" disabled>Tampilkan Perbandingan 📊</button>
+                            <button type="button" onclick="resetSimulation()" id="resetButton">Atur ulang 🧹</button> 
+                        </div>
+                    </div>
+                    
+                    <div class="results-section">
+                        <div id="stepControls" style="display: none;">
+                            <h3 style="text-align: center; color: #ff9800; margin-top: 0; margin-bottom: 15px;">Visualisasi Langkah (Step-by-Step)</h3>
+
+                            <div id="algoSelectorContainer" style="margin-bottom: 10px; text-align: center;">
+                                </div>
+                            
+                            <h4 id="stepCurrentAlgoLabel" style="text-align: center; color: var(--primary); display: none; margin-bottom: 15px;"></h4>
+
+                            <div style="text-align: center;">
+                                <button id="playBtn" onclick="play()">▶️ Play</button>
+                                <button id="stepBtn" onclick="step()">➡️ Next Step</button>
+                                <button id="resetStepBtn" onclick="resetStepper()">⏪ Reset Step</button>
+                            </div>
+                        </div>
+
+                        <div id="stepVisualizationOutput" class="step-visualization-container">
+                            </div>
+                        
+                        <hr id="resultDivider" style="display: none; margin: 30px 0;">
+
+                        <div class="results">
+                            <h2 id="resultTitle" style="display:none;">Hasil Simulasi</h2>
+                            
+                            <div id="simulationOutput">
+                            </div>
+                            
+                            <div id="comparisonOutput" class="comparison-container">
+                            </div>
+                        </div>
+                    </div>
+                    
+                </div>
+            </div>
+        </section>
+    </div>
+    <script>
+        // Variabel global
+        let simulationResults = []; 
+        let allSimulationHistories = {}; // Menyimpan semua hasil: { 'FIFO': history, 'LRU': history, 'Optimal': history }
+        let activeAlgorithm = null;      // Algoritma yang sedang divisualisasikan langkah demi langkah
+        let stepPointer = 0;             // Penunjuk langkah saat ini
+        let playTimer = null;            // ID Timer untuk fungsi Play
+        let currentFrameSize = 0;        // Menyimpan ukuran frame
+
+        // --- UTILITAS PEMBANTU ---
+
+        function parseReferenceString(str) {
+            return str.replace(/[, ]+/g, ' ')
+                .trim()
+                .split(' ')
+                .filter(n => n)
+                .map(n => parseInt(n));
+        }
+
+        // --- FUNGSI SIMULASI (TIDAK BERUBAH) ---
+        // (Isi fungsi simulateFIFO, simulateLRU, simulateOptimal tetap sama seperti kode Anda)
+
+        function simulateFIFO(refString, frameSize) { 
+            let frames = [];
+            let faultCount = 0;
+            let history = [];
+
+            for (let i = 0; i < refString.length; i++) {
+                const page = refString[i];
+                let fault = false;
+                let evicted = null;
+
+                if (frames.includes(page)) {
+                    fault = false;
+                } else {
+                    fault = true;
+                    faultCount++;
+                    if (frames.length < frameSize) {
+                        frames.push(page);
+                    } else {
+                        evicted = frames.shift(); // FIFO: Hapus yang pertama masuk
+                        frames.push(page);
+                    }
+                }
+                history.push({ page, frames: [...frames], fault, evicted });
+            }
+            const hitCount = refString.length - faultCount;
+            return { algorithm: "FIFO", faultCount, hitCount, totalAccess: refString.length, history };
+        }
+
+        function simulateLRU(refString, frameSize) { 
+            let frames = [];
+            let faultCount = 0;
+            let history = [];
+            let pageAccessTimes = new Map(); 
+
+            for (let i = 0; i < refString.length; i++) {
+                const page = refString[i];
+                let fault = false;
+                let evicted = null;
+
+                if (frames.includes(page)) {
+                    fault = false;
+                    pageAccessTimes.set(page, i); 
+                } else {
+                    fault = true;
+                    faultCount++;
+                    
+                    if (frames.length < frameSize) {
+                        frames.push(page);
+                        pageAccessTimes.set(page, i);
+                    } else {
+                        let lruPage = null;
+                        let minTime = Infinity;
+
+                        for (const framePage of frames) {
+                            const lastUsedTime = pageAccessTimes.get(framePage);
+                            if (lastUsedTime < minTime) {
+                                minTime = lastUsedTime;
+                                lruPage = framePage;
+                            }
+                        }
+
+                        evicted = lruPage;
+                        const lruIndex = frames.indexOf(lruPage);
+                        frames[lruIndex] = page;
+                        
+                        pageAccessTimes.set(page, i);
+                        pageAccessTimes.delete(evicted);
+                    }
+                }
+                history.push({ page, frames: [...frames], fault, evicted });
+            }
+            const hitCount = refString.length - faultCount;
+            return { algorithm: "LRU", faultCount, hitCount, totalAccess: refString.length, history };
+        }
+
+        function simulateOptimal(refString, frameSize) { 
+            let frames = [];
+            let faultCount = 0;
+            let history = [];
+
+            for (let i = 0; i < refString.length; i++) {
+                const page = refString[i];
+                let fault = false;
+                let evicted = null;
+
+                if (frames.includes(page)) {
+                    fault = false;
+                } else {
+                    fault = true;
+                    faultCount++;
+
+                    if (frames.length < frameSize) {
+                        frames.push(page);
+                    } else {
+                        let optimalPage = null;
+                        let maxFutureUse = -1;
+
+                        for (const framePage of frames) {
+                            let nextIndex = refString.slice(i + 1).indexOf(framePage);
+                            
+                            if (nextIndex === -1) { 
+                                optimalPage = framePage;
+                                break;
+                            }
+                            
+                            const futureTime = nextIndex; 
+
+                            if (futureTime > maxFutureUse) {
+                                maxFutureUse = futureTime;
+                                optimalPage = framePage;
+                            }
+                        }
+
+                        evicted = optimalPage;
+                        const optimalIndex = frames.indexOf(optimalPage);
+                        frames[optimalIndex] = page;
+                    }
+                }
+                history.push({ page, frames: [...frames], fault, evicted });
+            }
+            const hitCount = refString.length - faultCount;
+            return { algorithm: "Optimal", faultCount, hitCount, totalAccess: refString.length, history };
+        }
+
+
+        // --- FUNGSI RENDERING ---
+
+        function createSimulationTable(result, frameSize) {
+            // ... (Fungsi createSimulationTable tetap sama untuk hasil akhir)
+            const { algorithm, faultCount, hitCount, totalAccess, history } = result;
+            
+            const faultPercentage = (faultCount / totalAccess) * 100;
+            const hitPercentage = 100 - faultPercentage;
+            const summaryClass = faultPercentage > 50 ? 'summary fault-summary' : 'summary hit-summary';
+            
+            const headerRow = `<tr>
+                <th>Langkah</th>
+                <th>Akses Halaman</th>
+                ${Array(frameSize).fill().map((_, i) => `<th>F${i+1}</th>`).join('')}
+                <th>Evicted (Dikeluarkan)</th>
+                <th>Fault/Hit</th>
+            </tr>`;
+
+            const bodyRows = history.map((step, index) => {
+                const frameCells = Array(frameSize).fill('-');
+                step.frames.forEach((val, i) => {
+                    frameCells[i] = val;
+                });
+
+                const faultClass = step.fault ? 'fault' : 'hit';
+                const faultText = step.fault ? 'FAULT' : 'HIT';
+                const pageAccessClass = step.fault ? 'fault' : 'hit';
+
+                return `
+                    <tr>
+                        <td>${index + 1}</td>
+                        <td class="${pageAccessClass}">${step.page}</td>
+                        ${frameCells.map(val => `<td class="frame-cell">${val === '-' ? '-' : val}</td>`).join('')}
+                        <td>${step.evicted === null ? '-' : step.evicted}</td>
+                        <td class="${faultClass}">${faultText}</td>
+                    </tr>
+                `;
+            }).join('');
+
+            return `
+                <div class="simulation-card">
+                    <h3>${algorithm}</h3>
+                    <table>
+                        <thead>${headerRow}</thead>
+                        <tbody>${bodyRows}</tbody>
+                    </table>
+                    <p class="${summaryClass}">
+                        Total Page Faults: <strong>${faultCount}</strong> (${faultPercentage.toFixed(1)}%) | 
+                        Total Page Hits: <strong>${hitCount}</strong> (${hitPercentage.toFixed(1)}%)
+                    </p>
+                </div>
+            `;
+        }
+
+        function createComparisonSummary(results) {
+            // ... (Fungsi createComparisonSummary tetap sama)
+            if (results.length === 0) return '';
+            
+            let bestResult = results[0];
+            for (let i = 1; i < results.length; i++) {
+                if (results[i].faultCount < bestResult.faultCount) {
+                    bestResult = results[i];
+                }
+            }
+            
+            const isTie = results.filter(r => r.faultCount === bestResult.faultCount).length > 1;
+
+            let optimalMessage = '';
+            if (isTie) {
+                const tiedAlgos = results.filter(r => r.faultCount === bestResult.faultCount).map(r => r.algorithm).join(' dan ');
+                optimalMessage = `Terdapat hasil optimal bersama antara **${tiedAlgos}** dengan ${bestResult.faultCount} Page Fault.`;
+            } else {
+                optimalMessage = `Algoritma paling optimal adalah **${bestResult.algorithm}** dengan Page Fault terendah sebanyak ${bestResult.faultCount}.`;
+            }
+
+            const summaryRows = results.map(r => `
+                <tr>
+                    <td>${r.algorithm}</td>
+                    <td>${r.faultCount}</td>
+                    <td>${r.hitCount}</td>
+                    <td>${(r.faultCount / r.totalAccess * 100).toFixed(1)}%</td>
+                </tr>
+            `).join('');
+
+            return `
+                <h3>Perbandingan Kinerja Algoritma</h3>
+                <table class="comparison-table">
+                    <thead>
+                        <tr>
+                            <th>Algoritma</th>
+                            <th>Page Faults</th>
+                            <th>Page Hits</th>
+                            <th>% Page Faults</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${summaryRows}
+                    </tbody>
+                </table>
+                <p class="optimal-result">
+                    ${optimalMessage}
+                </p>
+            `;
+        }
+        
+        // --- FUNGSI STEPPER BARU ---
+
+        function renderStepTableInitial(frameSize) {
+            const headerRow = `<thead><tr>
+                <th>L</th>
+                <th>Ref</th>
+                ${Array(frameSize).fill().map((_, i) => `<th>F${i+1}</th>`).join('')}
+                <th>Evicted</th>
+                <th>Fault/Hit</th>
+            </tr></thead><tbody></tbody>`;
+            
+            document.getElementById('stepVisualizationOutput').innerHTML = `
+                <table class="step-visualization-table" id="stepTableBody">
+                    ${headerRow}
+                </table>
+            `;
+        }
+
+        function renderSingleStepRow(stepData, index, frameSize) {
+            const tableBody = document.getElementById('stepTableBody').querySelector('tbody');
+            if (!tableBody) return;
+            
+            // Hapus highlight dari baris sebelumnya
+            const previousRow = tableBody.querySelector('.current-step-row');
+            if (previousRow) {
+                previousRow.classList.remove('current-step-row');
+            }
+
+            const frameCells = Array(frameSize).fill('-');
+            stepData.frames.forEach((val, i) => {
+                frameCells[i] = val;
+            });
+
+            const faultClass = stepData.fault ? 'fault' : 'hit';
+            const faultText = stepData.fault ? 'FAULT' : 'HIT';
+            const pageAccessClass = stepData.fault ? 'fault' : 'hit';
+
+            const newRowHtml = `
+                <tr class="current-step-row">
+                    <td>${index + 1}</td>
+                    <td class="${pageAccessClass}">${stepData.page}</td>
+                    ${frameCells.map(val => `<td class="frame-cell">${val === '-' ? '-' : val}</td>`).join('')}
+                    <td>${stepData.evicted === null ? '-' : stepData.evicted}</td>
+                    <td class="${faultClass}">${faultText}</td>
+                </tr>
+            `;
+            
+            tableBody.insertAdjacentHTML('beforeend', newRowHtml);
+            
+            // Gulir ke baris baru
+            const newRow = tableBody.lastElementChild;
+            newRow.scrollIntoView({ behavior: 'smooth', block: 'end' });
+        }
+
+        function setActiveAlgorithm(algo) {
+            stopPlay();
+            if (!algo) {
+                 document.getElementById('stepCurrentAlgoLabel').textContent = 'Pilih algoritma di atas.';
+                 return;
+            }
+            activeAlgorithm = algo;
+            stepPointer = 0;
+            
+            renderStepTableInitial(currentFrameSize); // Buat ulang tabel
+            
+            document.getElementById('stepCurrentAlgoLabel').textContent = `Visualisasi Langkah: ${algo}`;
+            document.getElementById('stepCurrentAlgoLabel').style.display = 'block';
+        }
+
+        function step() {
+            if (!activeAlgorithm) return alert('Pilih algoritma yang ingin divisualisasikan langkahnya terlebih dahulu.');
+            
+            const currentHistory = allSimulationHistories[activeAlgorithm];
+            if (stepPointer >= currentHistory.length) {
+                stopPlay();
+                alert(`${activeAlgorithm} simulasi langkah selesai!`);
+                return;
+            }
+            
+            const stepData = currentHistory[stepPointer];
+            renderSingleStepRow(stepData, stepPointer, currentFrameSize);
+            stepPointer++;
+        }
+
+        function play() {
+            if (!activeAlgorithm) return alert('Pilih algoritma yang ingin divisualisasikan langkahnya terlebih dahulu.');
+            
+            const playButton = document.getElementById('playBtn');
+            const currentHistory = allSimulationHistories[activeAlgorithm];
+
+            if (playTimer) { 
+                stopPlay(); 
+                return; 
+            }
+            
+            if (stepPointer >= currentHistory.length) {
+                // Jika sudah selesai, reset dan mulai dari awal
+                setActiveAlgorithm(activeAlgorithm); 
+            }
+
+            playButton.textContent = '⏸️ Pause';
+            playTimer = setInterval(() => { 
+                if (stepPointer >= currentHistory.length) { 
+                    stopPlay(); 
+                    alert(`${activeAlgorithm} simulasi selesai.`);
+                } else {
+                    step();
+                }
+            }, 800); // Kecepatan putar: 800ms
+        }
+
+        function stopPlay() { 
+            if (playTimer) { 
+                clearInterval(playTimer); 
+                playTimer = null; 
+                document.getElementById('playBtn').textContent = '▶️ Play'; 
+            } 
+        }
+
+        function resetStepper() {
+             stopPlay();
+             setActiveAlgorithm(activeAlgorithm);
+        }
+
+        // --- FUNGSI UTAMA ---
+
+        function toggleComparison() {
+            // ... (Fungsi toggleComparison tetap sama)
+            const comparisonDiv = document.getElementById('comparisonOutput');
+            const toggleButton = document.getElementById('toggleComparisonButton');
+
+            if (simulationResults.length === 0) {
+                alert("Mohon jalankan simulasi terlebih dahulu!");
+                return;
+            }
+
+            if (comparisonDiv.style.display === 'block') {
+                comparisonDiv.style.display = 'none';
+                toggleButton.textContent = 'Tampilkan Perbandingan 📊';
+            } else {
+                comparisonDiv.innerHTML = createComparisonSummary(simulationResults);
+                comparisonDiv.style.display = 'block';
+                toggleButton.textContent = 'Sembunyikan Perbandingan 🗑️';
+                comparisonDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }
+
+        function runAllSimulations() {
+            if (!document.getElementById('simulation-page')) return; 
+
+            const refStringInput = document.getElementById('referenceString').value;
+            const frameSizeInput = document.getElementById('frameSize').value;
+            
+            const refString = parseReferenceString(refStringInput);
+            const frameSize = parseInt(frameSizeInput);
+
+            const outputDiv = document.getElementById('simulationOutput');
+            const comparisonDiv = document.getElementById('comparisonOutput');
+            const toggleButton = document.getElementById('toggleComparisonButton');
+            const stepControls = document.getElementById('stepControls');
+            const algoSelector = document.getElementById('algoSelectorContainer');
+            const stepOutput = document.getElementById('stepVisualizationOutput');
+            const resultDivider = document.getElementById('resultDivider');
+
+            // --- RESET TAMPILAN ---
+            outputDiv.innerHTML = '';
+            comparisonDiv.innerHTML = '';
+            comparisonDiv.style.display = 'none'; 
+            toggleButton.textContent = 'Tampilkan Perbandingan 📊';
+            stepOutput.innerHTML = '';
+            stepControls.style.display = 'none';
+            resultDivider.style.display = 'none';
+            document.getElementById('stepCurrentAlgoLabel').style.display = 'none';
+            
+            simulationResults = []; 
+            allSimulationHistories = {};
+            activeAlgorithm = null;
+            stepPointer = 0;
+            stopPlay();
+            currentFrameSize = 0;
+            
+            const selectedAlgorithms = Array.from(document.getElementsByName('algo'))
+                .filter(cb => cb.checked)
+                .map(cb => cb.value);
+
+            // Validasi Input
+            if (refString.some(isNaN) || refString.length === 0 || isNaN(frameSize) || frameSize < 1) {
+                outputDiv.innerHTML = '<p class="summary fault-summary">⚠️ Mohon periksa input: String referensi valid (angka) dan Ukuran bingkai >= 1.</p>';
+                document.getElementById('resultTitle').style.display = 'none';
+                toggleButton.disabled = true;
+                return;
+            }
+            if (selectedAlgorithms.length === 0) {
+                 outputDiv.innerHTML = '<p class="summary fault-summary">⚠️ Mohon pilih minimal satu algoritma untuk menjalankan simulasi.</p>';
+                 document.getElementById('resultTitle').style.display = 'none';
+                 toggleButton.disabled = true;
+                 return;
+            }
+            
+            document.getElementById('resultTitle').style.display = 'block';
+            currentFrameSize = frameSize;
+
+            // Jalankan Simulasi dan Simpan Hasil
+            if (selectedAlgorithms.includes('FIFO')) {
+                const res = simulateFIFO(refString, frameSize);
+                simulationResults.push(res);
+                allSimulationHistories['FIFO'] = res.history;
+            }
+            if (selectedAlgorithms.includes('LRU')) {
+                const res = simulateLRU(refString, frameSize);
+                simulationResults.push(res);
+                allSimulationHistories['LRU'] = res.history;
+            }
+            if (selectedAlgorithms.includes('Optimal')) {
+                const res = simulateOptimal(refString, frameSize);
+                simulationResults.push(res);
+                allSimulationHistories['Optimal'] = res.history;
+            }
+            
+            // --- KONTROL STEPPER ---
+            if (selectedAlgorithms.length > 0) {
+                stepControls.style.display = 'block';
+                resultDivider.style.display = 'block';
+
+                // Kasus 1: Hanya 1 Algoritma dipilih (otomatis aktifkan)
+                if (selectedAlgorithms.length === 1) {
+                    activeAlgorithm = selectedAlgorithms[0];
+                    algoSelector.innerHTML = ''; // Hapus dropdown jika ada
+                    setActiveAlgorithm(activeAlgorithm); // Aktifkan dan siapkan tabel
+                } 
+                
+                // Kasus 2: Lebih dari 1 Algoritma dipilih (tampilkan pilihan)
+                else {
+                    const selectHtml = `
+                        <label for="stepAlgoSelect">Pilih Algoritma untuk Step-by-Step:</label>
+                        <select id="stepAlgoSelect" onchange="setActiveAlgorithm(this.value)">
+                            <option value="" disabled selected>-- Pilih Algoritma --</option>
+                            ${selectedAlgorithms.map(algo => `<option value="${algo}">${algo}</option>`).join('')}
+                        </select>
+                    `;
+                    algoSelector.innerHTML = selectHtml;
+                    document.getElementById('stepCurrentAlgoLabel').textContent = 'Pilih algoritma untuk memulai visualisasi langkah.';
+                    document.getElementById('stepCurrentAlgoLabel').style.display = 'block';
+
+                }
+            }
+
+            // Tampilkan Hasil Detail
+            simulationResults.forEach(result => {
+                outputDiv.innerHTML += createSimulationTable(result, frameSize);
+            });
+            
+            // Aktifkan tombol perbandingan
+            toggleButton.disabled = false;
+
+            // Gulir ke step controls
+            stepControls.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        function resetSimulation() {
+            document.getElementById('referenceString').value = '';
+            document.getElementById('frameSize').value = '';
+            
+            const algorithms = document.getElementsByName('algo');
+            algorithms.forEach(cb => {
+                cb.checked = false;
+            });
+
+            document.getElementById('simulationOutput').innerHTML = '';
+            document.getElementById('comparisonOutput').innerHTML = '';
+            document.getElementById('comparisonOutput').style.display = 'none';
+            document.getElementById('resultTitle').style.display = 'none';
+            
+            simulationResults = [];
+            allSimulationHistories = {};
+            activeAlgorithm = null;
+            stepPointer = 0;
+            stopPlay();
+            document.getElementById('stepVisualizationOutput').innerHTML = '';
+            document.getElementById('stepControls').style.display = 'none';
+            document.getElementById('resultDivider').style.display = 'none';
+            
+            const toggleButton = document.getElementById('toggleComparisonButton');
+            toggleButton.disabled = true;
+            toggleButton.textContent = 'Tampilkan Perbandingan 📊';
+
+            document.getElementById('simulation-page').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+        
+        // --- EVENT LISTENER DOM ---
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('toggleComparisonButton').disabled = true;
+
+            const runButton = document.querySelector('#runButton');
+            if (runButton) {
+                runButton.addEventListener('click', (e) => {
+                    const selectedAlgorithms = Array.from(document.getElementsByName('algo')).filter(cb => cb.checked).length;
+                    if (selectedAlgorithms === 0) {
+                        e.preventDefault(); 
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>
